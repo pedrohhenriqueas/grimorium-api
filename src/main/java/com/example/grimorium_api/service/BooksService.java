@@ -1,22 +1,18 @@
 package com.example.grimorium_api.service;
 
 import com.example.grimorium_api.entity.Book;
-import com.example.grimorium_api.entity.Users;
 import com.example.grimorium_api.models.BookDto;
 import com.example.grimorium_api.repository.BooksRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +24,7 @@ public class BooksService {
     private BooksRepository booksRepository;
 
     @Autowired
-    private UsersService usersService;
+    private GoogleBooksApiService googleBooksApiService;
 
     public Book create(BookDto bookDto){
         Book book = new Book();
@@ -65,160 +61,44 @@ public class BooksService {
         booksRepository.deleteById(id);
     }
 
-    public Object searchBookFromOpenApi(String bookName) throws URISyntaxException, IOException {
-        HttpGet httpGet = new HttpGet("https://openlibrary.org/search.json");
-        URI uri = new URIBuilder(httpGet.getUri())
-                .addParameter("title", bookName)
-                .build();
-
-        httpGet.setUri(uri);
-
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            ObjectMapper mapper = new ObjectMapper();
-            Object result = httpClient.execute(httpGet, response ->
-                    mapper.readValue(
-                            EntityUtils.toString(response.getEntity()),
-                            Object.class
-                    )
-            );
-            return result;
-        }
-    }
-
-    public List<Book> findUserBooks(int userId){
-        Users user = usersService.findById(userId);
-        return user.getFavoriteBooks();
-    }
-
-    public BookDto getBookFromOpenApi(String bookName) throws URISyntaxException, IOException{
-        Object booksFromOpenApi = searchBookFromOpenApi(bookName);
+    public List<Map<String, Object>> apiSearchByName(String bookName) throws URISyntaxException, IOException{
+        Object booksFound = googleBooksApiService.searchBookFromGoogleBooksApi(bookName);
         ObjectMapper mapper = new ObjectMapper();
 
-        Map<String, Object> responseMap = mapper.convertValue(booksFromOpenApi, Map.class);
+        Map<String, Object> booksMap = mapper.convertValue(booksFound, Map.class);
 
-        List<Map<String, Object>> booksFound = (List<Map<String, Object>>) responseMap.get("docs");
+        List<Map<String, Object>> items = (List<Map<String, Object>>) booksMap.get("items");
 
-        return attributeValuesToBooks(booksFound);
-    }
-
-    private BookDto attributeValuesToBooks(List<Map<String,Object>> booksFound) {
-
-            Map<String, Object> book = booksFound.get(0);
-
-            BookDto bookToAddToResponse = new BookDto();
-            bookToAddToResponse.setAuthor(((List<String>) book.get("author_name")).get(0).toString());
-            bookToAddToResponse.setTitle(book.get("title").toString());
-            bookToAddToResponse.setPublishYear((int) book.get("first_publish_year"));
-
-            String bookKeyToRequestMoreDetails = book.get("key").toString();
-            String authorKey = ((List<String>) book.get("author_name")).get(0).toString();
-
-//            requestDescriptionAndSubjects(bookKeyToRequestMoreDetails, bookToAddToResponse);
-//            requestPublishersAndNumOfPages(bookKeyToRequestMoreDetails, bookToAddToResponse, authorKey);
-//            requestRatings(bookKeyToRequestMoreDetails, bookToAddToResponse);
-
-            return bookToAddToResponse;
-    }
-
-    private void requestDescriptionAndSubjects(String bookKey, BookDto bookDto) throws URISyntaxException, IOException{
-        String url = "https://openlibrary.org" + "/works" + bookKey + ".json";
-
-        HttpGet httpGet = new HttpGet(url);
-        URI uri = new URIBuilder(httpGet.getUri())
-                .build();
-
-        httpGet.setUri(uri);
-
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            ObjectMapper mapper = new ObjectMapper();
-            Object result = httpClient.execute(httpGet, response ->
-                    mapper.readValue(
-                            EntityUtils.toString(response.getEntity()),
-                            Object.class
-                    )
-            );
-
-            Map<String, Object> resultMap = mapper.convertValue(result, Map.class);
-
-            if(resultMap.get("description") != null) {
-                bookDto.setSynopsis(resultMap.get("description").toString());
-            }
-
-            if(resultMap.get("subjects") != null){
-                bookDto.setCategory((List<String>) resultMap.get("subjects"));        
-            }
+        if (items == null || items.isEmpty()) {
+            return Collections.emptyList();
         }
-    }
 
-    private void requestPublishersAndNumOfPages(String bookKey, BookDto bookDto, String authorKey) throws URISyntaxException, IOException{
-        String url = "https://openlibrary.org" + bookKey + "/editions.json";
+        List<Map<String, Object>> response = new ArrayList<>();
 
-        HttpGet httpGet = new HttpGet(url);
-        URI uri = new URIBuilder(httpGet.getUri())
-                .build();
+        for(Map<String, Object> item : items){
 
-        httpGet.setUri(uri);
+            Map<String, Object> volumeInfo = mapper.convertValue(item.get("volumeInfo"), Map.class);
 
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            ObjectMapper mapper = new ObjectMapper();
-            Object result = httpClient.execute(httpGet, response ->
-                    mapper.readValue(
-                            EntityUtils.toString(response.getEntity()),
-                            Object.class
-                    )
-            );
+            if (volumeInfo == null) continue;
 
-            Map<String, Object> resultMap = mapper.convertValue(result, Map.class);
+            String title = volumeInfo.get("title").toString();
 
-            List<Map<String, Object>> entries = (List<Map<String, Object>>) resultMap.get("entries");
+            if(title.toLowerCase().contains(bookName.toLowerCase())){
+                List<String> categories = (List<String>) volumeInfo.get("categories");
+                List<String> authors = (List<String>) volumeInfo.get("authors");
 
-            for(Map<String, Object> map : entries){
-                String authorKeyWithoutUrl = "";
-                if(map.get("authors") != null){
-                    List<Map<String, Object>> authors = (List<Map<String, Object>>) map.get("authors");
-                    String authorKeyFromRequest = authors.get(0).get("key").toString();
-                    authorKeyWithoutUrl = authorKeyFromRequest.replace("/authors/", "");
-                }
+                if (authors != null && categories != null){
+                    Map<String, Object> book = new HashMap<>();
+                    book.put("googleId", item.get("id"));
+                    book.put("title", title);
+                    book.put("author", authors.get(0));
+                    book.put("category", categories.get(0));
 
-
-                String bookTitle = map.get("title").toString();
-
-                if(authorKeyWithoutUrl.equals(authorKey) && bookTitle.equals(bookDto.getTitle())){
-                    bookDto.setPublisher(((List<String>) map.get("publishers")).get(0).toString());
-
-                    int numberOfPages = (int) map.get("number_of_pages");
-                    bookDto.setPages(numberOfPages);
+                    response.add(book);
                 }
             }
         }
+
+        return response;
     }
-
-    private void requestRatings(String bookKey, BookDto bookDto) throws URISyntaxException, IOException{
-        String url = "https://openlibrary.org" + bookKey + "/ratings.json";
-
-        HttpGet httpGet = new HttpGet(url);
-        URI uri = new URIBuilder(httpGet.getUri())
-                .build();
-
-        httpGet.setUri(uri);
-
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            ObjectMapper mapper = new ObjectMapper();
-            Object result = httpClient.execute(httpGet, response ->
-                    mapper.readValue(
-                            EntityUtils.toString(response.getEntity()),
-                            Object.class
-                    )
-            );
-
-            Map<String, Object> resultMap = mapper.convertValue(result, Map.class);
-
-            Map<String, Object> summary = mapper.convertValue(resultMap.get("summary"), Map.class);
-
-            double averageRating = (Double) summary.get("average");
-
-            bookDto.setRating(averageRating);
-        }
-    }
-
 }

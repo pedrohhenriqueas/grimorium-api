@@ -4,19 +4,22 @@ import com.example.grimorium_api.entity.Book;
 import com.example.grimorium_api.models.BookDto;
 import com.example.grimorium_api.service.BooksService;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 @RestController
 @RequestMapping("/books")
 public class BooksController {
 
     @Autowired
-    private BooksService booksService;
+    private BooksService booksService;    
 
     @PostMapping
     public ResponseEntity<Object> create(@RequestBody BookDto bookDto){
@@ -43,9 +46,9 @@ public class BooksController {
     }
 
     @GetMapping
-    public ResponseEntity<Object> getBookFromOpenApi(@RequestParam String bookName) throws URISyntaxException, IOException {
-        BookDto bookDto = booksService.getBookFromOpenApi(bookName);
+    public ResponseEntity<Object> searchBookFromGoogleBooksApi(@RequestParam String book) throws URISyntaxException, IOException {
+        List<Map<String, Object>> response = booksService.apiSearchByName(book);
 
-        return ResponseEntity.ok().body(bookDto);
+        return ResponseEntity.ok().body(response);
     }
 }
