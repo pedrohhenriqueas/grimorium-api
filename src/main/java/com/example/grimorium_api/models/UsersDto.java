@@ -1,12 +1,12 @@
 package com.example.grimorium_api.models;
 
 public class UsersDto {
-    private int id;
+    private Integer id;
     private String name;
     private String email;
     private int booksRead;
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
     public void setId(int id) {
@@ -30,4 +30,12 @@ public class UsersDto {
     public void setBooksRead(int booksRead) {
         this.booksRead = booksRead;
     }
+    public UsersDto(Integer id, String name, String email, int booksRead) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.booksRead = booksRead;
+    }
+    public UsersDto() {}
+
 }

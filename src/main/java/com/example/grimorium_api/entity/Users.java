@@ -21,7 +21,7 @@ public class Users {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private int id;
+    private Integer id;
 
     @Column(name = "nome", nullable = false)
     private String name;
@@ -43,7 +43,7 @@ public class Users {
     private int booksRead;
 
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
@@ -82,5 +82,14 @@ public class Users {
     public void setFavoriteBooks(List<Book> favoriteBooks) {
         this.favoriteBooks = favoriteBooks;
     }
+
+    public Users(Integer id, String name, String email, int booksRead) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.booksRead = booksRead;
+    }
+
+    public Users() {}
     
 }

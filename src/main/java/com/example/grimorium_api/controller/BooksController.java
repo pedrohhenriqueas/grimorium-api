@@ -2,6 +2,7 @@ package com.example.grimorium_api.controller;
 
 import com.example.grimorium_api.entity.Book;
 import com.example.grimorium_api.models.BookDto;
+import com.example.grimorium_api.models.response.MessageResponse;
 import com.example.grimorium_api.service.BooksService;
 
 import java.io.IOException;
@@ -42,7 +43,7 @@ public class BooksController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> delete(@PathVariable int id){
         booksService.delete(id);
-        return ResponseEntity.ok().body("Livro excluído com sucesso.");
+        return ResponseEntity.ok().body(new MessageResponse("Livro excluído com sucesso."));
     }
 
     @GetMapping
