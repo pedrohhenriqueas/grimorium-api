@@ -46,5 +46,24 @@ public class GoogleBooksApiService {
         }
     }
 
+    public Object searchBookFromApiById(String googleId) throws URISyntaxException, IOException{
+        HttpGet httpGet = new HttpGet(url + "/" + googleId);
+        URI uri = new URIBuilder(httpGet.getUri())
+                .addParameter("key", key)
+                .build();
+
+        httpGet.setUri(uri);
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            ObjectMapper mapper = new ObjectMapper();
+            return httpClient.execute(httpGet, response ->
+                    mapper.readValue(
+                            EntityUtils.toString(response.getEntity()),
+                            Object.class
+                    )
+            );
+        }
+    }
+
    
 }

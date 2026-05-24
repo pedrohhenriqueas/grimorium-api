@@ -10,7 +10,8 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +20,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/books")
 public class BooksController {
 
-    @Autowired
-    private BooksService booksService;    
+    private final BooksService booksService;    
+
+    public BooksController(BooksService booksService) {
+        this.booksService = booksService;
+    }
 
     @PostMapping
     public ResponseEntity<Object> create(@RequestBody BookDto bookDto){
@@ -30,12 +34,19 @@ public class BooksController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable int id){
-        Book book = booksService.findById(id);
+        Book book;
+        try {
+            book = booksService.findById(id);
+        } catch (NotFoundException e) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new MessageResponse("Livro Não Encontrado"));
+        }
         return ResponseEntity.ok().body(book);
     }
 
     @PutMapping
-    public ResponseEntity<Object> update(@RequestBody BookDto bookDto){
+    public ResponseEntity<Object> update(@RequestBody BookDto bookDto) throws NotFoundException{
         Book book = booksService.updateBook(bookDto);
         return ResponseEntity.ok().body(book);
     }
@@ -52,4 +63,13 @@ public class BooksController {
 
         return ResponseEntity.ok().body(response);
     }
+
+    @GetMapping("googleId")
+    public ResponseEntity<Object> getBookFromApiByGoogleId(@RequestParam String googleId) throws URISyntaxException, IOException{
+
+        Map<String, Object> response = booksService.searchInApiByGoogleId(googleId);
+
+        return ResponseEntity.ok(response);
+    }
+
 }

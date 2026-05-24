@@ -3,9 +3,10 @@ package com.example.grimorium_api.service;
 import com.example.grimorium_api.entity.Book;
 import com.example.grimorium_api.models.BookDto;
 import com.example.grimorium_api.repository.BooksRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,11 +21,15 @@ import java.util.Optional;
 @Service
 public class BooksService {
 
-    @Autowired
-    private BooksRepository booksRepository;
+    private static final String TITLE = "title";
 
-    @Autowired
-    private GoogleBooksApiService googleBooksApiService;
+    private final BooksRepository booksRepository;
+    private final GoogleBooksApiService googleBooksApiService;
+
+    public BooksService(BooksRepository booksRepository, GoogleBooksApiService googleBooksApiService) {
+        this.booksRepository = booksRepository;
+        this.googleBooksApiService = googleBooksApiService;
+    }
 
     public Book create(BookDto bookDto){
         Book book = new Book();
@@ -39,12 +44,15 @@ public class BooksService {
         return booksRepository.save(book);
     }
 
-    public Book findById(int id){
+    public Book findById(int id) throws NotFoundException{
         Optional<Book> book = booksRepository.findById(id);
+        if (book.isEmpty())
+            throw new NotFoundException();
+        
         return book.get();
     }
 
-    public Book updateBook(BookDto updatedBook){
+    public Book updateBook(BookDto updatedBook) throws NotFoundException{
         Book book = findById(updatedBook.getId());
         book.setTitle(updatedBook.getTitle());
         book.setAuthor(updatedBook.getAuthor());
@@ -65,9 +73,9 @@ public class BooksService {
         Object booksFound = googleBooksApiService.searchBookFromGoogleBooksApi(bookName);
         ObjectMapper mapper = new ObjectMapper();
 
-        Map<String, Object> booksMap = mapper.convertValue(booksFound, Map.class);
+        Map<String, Object> booksMap = convert(mapper, booksFound, new TypeReference<>() {});
 
-        List<Map<String, Object>> items = (List<Map<String, Object>>) booksMap.get("items");
+        List<Map<String, Object>> items = convert(mapper, booksMap.get("items"), new TypeReference<>() {});
 
         if (items == null || items.isEmpty()) {
             return Collections.emptyList();
@@ -76,21 +84,20 @@ public class BooksService {
         List<Map<String, Object>> response = new ArrayList<>();
 
         for(Map<String, Object> item : items){
-
-            Map<String, Object> volumeInfo = mapper.convertValue(item.get("volumeInfo"), Map.class);
+            Map<String, Object> volumeInfo = convert(mapper, item.get("volumeInfo"), new TypeReference<>() {});
 
             if (volumeInfo == null) continue;
 
-            String title = volumeInfo.get("title").toString();
+            String title = volumeInfo.get(TITLE).toString();
 
             if(title.toLowerCase().contains(bookName.toLowerCase())){
-                List<String> categories = (List<String>) volumeInfo.get("categories");
-                List<String> authors = (List<String>) volumeInfo.get("authors");
+                List<String> categories = convert(mapper,  volumeInfo.get("categories"), new TypeReference<>() {});
+                List<String> authors = convert(mapper, volumeInfo.get("authors"), new TypeReference<>() {});
 
                 if (authors != null && categories != null){
                     Map<String, Object> book = new HashMap<>();
                     book.put("googleId", item.get("id"));
-                    book.put("title", title);
+                    book.put(TITLE, title);
                     book.put("author", authors.get(0));
                     book.put("category", categories.get(0));
 
@@ -100,5 +107,33 @@ public class BooksService {
         }
 
         return response;
+    }
+
+    public Map<String, Object> searchInApiByGoogleId(String googleId) throws URISyntaxException, IOException{
+        Object googleApiResponse = googleBooksApiService.searchBookFromApiById(googleId);
+        Map<String, Object> response = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
+
+        Map<String, Object> bookFoundMap = convert(mapper, googleApiResponse, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> volumeInfo = convert(mapper, bookFoundMap.get("volumeInfo"), new TypeReference<>() {});
+        List<String> categories = convert(mapper, volumeInfo.get("categories"), new TypeReference<>() {});
+        List<String> authors = convert(mapper, volumeInfo.get("authors"), new TypeReference<>() {});
+        Map<String, Object> imageLinks = convert(mapper, volumeInfo.get("imageLinks"), new TypeReference<>() {});
+
+        response.put("id", bookFoundMap.get("id").toString());
+        response.put(TITLE, volumeInfo.get(TITLE).toString());
+        response.put("author", authors.get(0));
+        response.put("category", categories.get(0));
+        response.put("rating", volumeInfo.get("averageRating").toString());
+        response.put("pageCount", volumeInfo.get("pageCount").toString());
+        response.put("description", volumeInfo.get("description").toString());
+        response.put("publishedDate", volumeInfo.get("publishedDate").toString());
+        response.put("imageLink", imageLinks.get("medium"));
+
+        return response;
+    }
+
+    private <T> T convert(ObjectMapper mapper, Object value, TypeReference<T> typeRef) {
+        return mapper.convertValue(value, typeRef);
     }
 }
