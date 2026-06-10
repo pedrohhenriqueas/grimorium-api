@@ -87,6 +87,21 @@ public class BookDto {
         this.category = category;
     }
 
+    public BookDto(int id, String title, String author, String synopsis, int publishYear, int pages, Double rating,
+            List<String> category, String publisher) {
+        this.id = id;
+        this.title = title;
+        this.author = author;
+        this.synopsis = synopsis;
+        this.publishYear = publishYear;
+        this.pages = pages;
+        this.rating = rating;
+        this.category = category;
+        this.publisher = publisher;
+    }
+
+    public BookDto() {}
+
     public static BookDto toDTO(Book book) {
         BookDto dto = new BookDto();
         dto.setId(book.getId());

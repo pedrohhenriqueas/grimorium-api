@@ -108,8 +108,9 @@ public class Book {
         this.publisher = publisher;
     }
 
-    public Book(String title, String author, String synopsis, int publishYear, int pages, Double rating,
+    public Book(int id, String title, String author, String synopsis, int publishYear, int pages, Double rating,
             List<String> category, String publisher) {
+        this.id = id;
         this.title = title;
         this.author = author;
         this.synopsis = synopsis;

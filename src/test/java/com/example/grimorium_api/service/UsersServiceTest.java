@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,6 +49,7 @@ class UsersServiceTest {
     @Test
     void shouldThrowExceptionWithUserNotFound(){
         // arrange
+        
         // act
         when(usersRepository.findById(99)).thenReturn(Optional.empty());
 
@@ -74,5 +76,37 @@ class UsersServiceTest {
         assertEquals("John Doe", result.getName());
 
         verify(usersRepository).save(any(User.class));
+    }
+
+    @Test
+    void shouldUpdateUser() {
+        // arrange
+        UserDto updatedUser = new UserDto(1, "John Doe Smith", "johndoesmith@email.com", 5);
+        User userSaved = new User(1, "John Doe Smith", "johndoesmith@email.com", 5);
+
+        when(usersRepository.findById(1)).thenReturn(Optional.of(userSaved)); // mock findById
+        when(usersRepository.save(any(User.class))).thenReturn(userSaved);
+
+        // act
+        User result = usersService.update(updatedUser);
+
+        // assert
+        assertNotNull(result);
+        assertEquals(1, result.getId());
+        assertEquals("John Doe Smith", result.getName());
+
+        verify(usersRepository).save(any(User.class));
+    }
+
+    @Test
+    void shouldDeleteUser() {
+        // arrange
+        doNothing().when(usersRepository).deleteById(1);
+
+        // act
+        usersService.delete(1);
+
+        // assert
+        verify(usersRepository).deleteById(1);
     }
 }
