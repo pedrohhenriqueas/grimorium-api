@@ -10,7 +10,6 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,25 +18,34 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/books")
 public class BooksController {
 
-    @Autowired
-    private BooksService booksService;    
+    private BooksService booksService;
+
+    public BooksController(BooksService booksService) {
+        this.booksService = booksService;
+    }
 
     @PostMapping
     public ResponseEntity<Object> create(@RequestBody BookDto bookDto){
         Book book = booksService.create(bookDto);
-        return ResponseEntity.ok().body(book);
+        BookDto createdBook = BookDto.toDTO(book);
+
+        return ResponseEntity.ok().body(createdBook);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable int id){
         Book book = booksService.findById(id);
-        return ResponseEntity.ok().body(book);
+        BookDto bookFound = BookDto.toDTO(book);
+
+        return ResponseEntity.ok().body(bookFound);
     }
 
     @PutMapping
     public ResponseEntity<Object> update(@RequestBody BookDto bookDto){
         Book book = booksService.updateBook(bookDto);
-        return ResponseEntity.ok().body(book);
+        BookDto updatedBook = BookDto.toDTO(book);
+
+        return ResponseEntity.ok().body(updatedBook);
     }
 
     @DeleteMapping("/{id}")

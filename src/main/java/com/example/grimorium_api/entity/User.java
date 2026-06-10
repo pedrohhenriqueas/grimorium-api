@@ -16,7 +16,7 @@ import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "usuarios")
-public class Users {
+public class User {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -83,13 +83,13 @@ public class Users {
         this.favoriteBooks = favoriteBooks;
     }
 
-    public Users(Integer id, String name, String email, int booksRead) {
+    public User(Integer id, String name, String email, int booksRead) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.booksRead = booksRead;
     }
 
-    public Users() {}
+    public User() {}
     
 }

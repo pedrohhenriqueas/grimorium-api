@@ -2,6 +2,8 @@ package com.example.grimorium_api.models;
 
 import java.util.List;
 
+import com.example.grimorium_api.entity.Book;
+
 public class BookDto {
     private int id;
     private String title;
@@ -83,5 +85,19 @@ public class BookDto {
 
     public void setCategory(List<String> category) {
         this.category = category;
+    }
+
+    public static BookDto toDTO(Book book) {
+        BookDto dto = new BookDto();
+        dto.setId(book.getId());
+        dto.setTitle(book.getTitle());
+        dto.setAuthor(book.getAuthor());
+        dto.setSynopsis(book.getSynopsis());
+        dto.setPublishYear(book.getPublishYear());
+        dto.setPages(book.getPages());
+        dto.setRating(book.getRating());
+        dto.setCategory(book.getCategory());
+        dto.setPublisher(book.getPublisher());
+        return dto;
     }
 }

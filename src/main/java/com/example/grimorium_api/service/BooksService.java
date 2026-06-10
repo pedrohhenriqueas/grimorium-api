@@ -5,7 +5,6 @@ import com.example.grimorium_api.models.BookDto;
 import com.example.grimorium_api.repository.BooksRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,16 +14,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.NoSuchElementException;
 
 @Service
 public class BooksService {
 
-    @Autowired
-    private BooksRepository booksRepository;
+    private final BooksRepository booksRepository;
+    private final GoogleBooksApiService googleBooksApiService;
 
-    @Autowired
-    private GoogleBooksApiService googleBooksApiService;
+    public BooksService(BooksRepository booksRepository, GoogleBooksApiService googleBooksApiService) {
+        this.booksRepository = booksRepository;
+        this.googleBooksApiService = googleBooksApiService;
+    }
 
     public Book create(BookDto bookDto){
         Book book = new Book();
@@ -40,8 +41,8 @@ public class BooksService {
     }
 
     public Book findById(int id){
-        Optional<Book> book = booksRepository.findById(id);
-        return book.get();
+        return booksRepository.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("Book not found with id: " + id));
     }
 
     public Book updateBook(BookDto updatedBook){

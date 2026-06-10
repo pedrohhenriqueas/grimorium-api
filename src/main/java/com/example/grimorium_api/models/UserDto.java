@@ -1,6 +1,6 @@
 package com.example.grimorium_api.models;
 
-public class UsersDto {
+public class UserDto {
     private Integer id;
     private String name;
     private String email;
@@ -30,12 +30,12 @@ public class UsersDto {
     public void setBooksRead(int booksRead) {
         this.booksRead = booksRead;
     }
-    public UsersDto(Integer id, String name, String email, int booksRead) {
+    public UserDto(Integer id, String name, String email, int booksRead) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.booksRead = booksRead;
     }
-    public UsersDto() {}
+    public UserDto() {}
 
 }

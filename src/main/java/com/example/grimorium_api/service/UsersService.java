@@ -1,27 +1,29 @@
 package com.example.grimorium_api.service;
 
-import java.util.Optional;
+import java.util.NoSuchElementException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.example.grimorium_api.entity.Users;
-import com.example.grimorium_api.models.UsersDto;
+import com.example.grimorium_api.entity.User;
+import com.example.grimorium_api.models.UserDto;
 import com.example.grimorium_api.repository.UsersRepository;
 
 @Service
 public class UsersService {
     
-    @Autowired
-    private UsersRepository usersRepository;
+    private final UsersRepository usersRepository;
 
-    public Users findById(int id){
-        Optional<Users> userOptional = usersRepository.findById(id);
-        return userOptional.get();
+    public UsersService(UsersRepository usersRepository) {
+        this.usersRepository = usersRepository;
     }
 
-    public Users create(UsersDto usersDto){
-        Users user = new Users();
+    public User findById(int id){
+        return usersRepository.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("User not found with id: " + id));
+    }
+
+    public User create(UserDto usersDto){
+        User user = new User();
         user.setName(usersDto.getName());
         user.setEmail(usersDto.getEmail());
         user.setBooksRead(0);
@@ -29,8 +31,8 @@ public class UsersService {
         return usersRepository.save(user);
     }
 
-    public Users update(UsersDto usersDto){
-        Users user = findById(usersDto.getId());
+    public User update(UserDto usersDto){
+        User user = findById(usersDto.getId());
         user.setName(usersDto.getName());
         user.setEmail(usersDto.getEmail());
         user.setBooksRead(usersDto.getBooksRead());

@@ -108,5 +108,17 @@ public class Book {
         this.publisher = publisher;
     }
 
+    public Book(String title, String author, String synopsis, int publishYear, int pages, Double rating,
+            List<String> category, String publisher) {
+        this.title = title;
+        this.author = author;
+        this.synopsis = synopsis;
+        this.publishYear = publishYear;
+        this.pages = pages;
+        this.rating = rating;
+        this.category = category;
+        this.publisher = publisher;
+    }
+
     public Book() {}
 }
